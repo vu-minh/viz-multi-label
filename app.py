@@ -25,10 +25,21 @@ select_dataset = html.Div([
 ])
 
 
-select_label = html.Div([
-    html.Label("Target label:"),
+select_label_for_color = html.Div([
+    html.Label("Select label for marker:"),
     dcc.Dropdown(
-        id="select-label",
+        id="select-label-color",
+        options=[
+            {'label': "", 'value': ""}
+        ],
+    ),
+])
+
+
+select_label_for_maker = html.Div([
+    html.Label("Select label for color:"),
+    dcc.Dropdown(
+        id="select-label-maker",
         options=[
             {'label': "", 'value': ""}
         ],
@@ -55,7 +66,8 @@ app.layout = dbc.Container([
         html.Div(["Multi-label dataset visualization"])
     ]),
     dbc.Row([
-        dbc.Col([select_dataset, select_label, select_perplexity], md=4),
+        dbc.Col([select_dataset, select_perplexity,
+                 select_label_for_color, select_label_for_maker], md=4),
         dbc.Col([scatter_graph], md=6),
         dbc.Col([], md=2),
     ]),

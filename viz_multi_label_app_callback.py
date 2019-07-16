@@ -4,6 +4,7 @@
 import json
 from functools import partial
 from itertools import combinations
+from itertools import cycle
 
 import dash
 from dash.exceptions import PreventUpdate
@@ -55,46 +56,66 @@ def get_embedding(dataset_name, perplexity):
 
 
 @app.callback(
-    Output("select-label", "options"),
+    [Output("select-label-color", "options"),
+     Output("select-label-maker", "options")],
     [Input("select-dataset", "value")],
 )
 def load_multi_label_dataset_callback(dataset_name):
-    return [{'label': lbl_name, 'value': lbl_name}
-            for lbl_name in get_all_label_names(dataset_name)]
+    label_options = [{'label': lbl_name, 'value': lbl_name}
+                     for lbl_name in get_all_label_names(dataset_name)]
+    return (label_options, label_options)
 
 
 @app.callback(
     Output("scatter-graph", "figure"),
     [Input("select-dataset", "value"),
-     Input("select-label", "value"),
+     Input("select-label-color", "value"),
+     Input("select-label-maker", "value"),
      Input("select-perplexity", "value")]
 )
-def load_graph_callback(dataset_name, label_name, perplexity):
-    if None in [dataset_name, label_name, perplexity]:
+def load_graph_callback(dataset_name, label_color, label_maker, perplexity):
+    if None in [dataset_name, label_color, label_maker, perplexity]:
         raise PreventUpdate
     
-    label_names = get_one_label_names(dataset_name, label_name)
-    print(label_names)
+    label_color_names = get_one_label_names(dataset_name, label_color)
+    label_maker_names = get_one_label_names(dataset_name, label_maker)
     
     Z = get_embedding(dataset_name, float(perplexity))
-    print(Z.shape)
+    list_color_codes = cycle(['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'])
     
     traces = []
-    for name in np.unique(label_names):
-        Z_by_label = Z[label_names == name]
-        traces.append(go.Scatter(
-            x=Z_by_label[:, 0],
-            y=Z_by_label[:, 1],
-            text=name,
-            mode='markers',
-            opacity=0.7,
-            marker={
-                'size': 15,
-                'line': {'width': 0.5, 'color': 'white'}
-            },
-            name=name,
-        ))
-    print(len(traces))
+    for name_color, color_code in zip(np.unique(label_color_names), list_color_codes):        
+        (idx_by_color, ) = np.where(label_color_names == name_color)
+        for maker_symbol, name_maker in enumerate(np.unique(label_maker_names)):
+            (idx_by_marker, ) = np.where(label_maker_names == name_maker)
+
+            idx_by_color_maker = list(set(idx_by_color.tolist()) &
+                                      set(idx_by_marker.tolist()))
+            Z_by_color_maker = Z[idx_by_color_maker]
+            name = f"{label_color}: {name_color} <br> {label_maker}: {name_maker}"
+
+            traces.append(go.Scatter(
+                x=Z_by_color_maker[:, 0],
+                y=Z_by_color_maker[:, 1],
+                text=name,
+                mode='markers',
+                opacity=0.8,
+                marker={
+                    'color': 'white',
+                    'size': 12,
+                    'symbol': maker_symbol,
+                    'line': {'width': 2.0, 'color': color_code}
+                },
+                name=name,
+            ))
+
+    no_axes_config = {
+        'showgrid': False,
+        'showline': False,
+        'zeroline': False,
+        'showticklabels': False,
+    }
+
     
     return {
         'data': traces,
@@ -102,6 +123,8 @@ def load_graph_callback(dataset_name, label_name, perplexity):
             autosize=True,
             width=800,
             height=500,
+            xaxis=no_axes_config,
+            yaxis=no_axes_config,
             # xaxis={'type': 'log', 'title': 'GDP Per Capita'},
             # yaxis={'title': 'Life Expectancy', 'range': [20, 90]},
             margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
