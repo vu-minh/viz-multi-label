@@ -37,6 +37,11 @@ def get_custom_group_for_label():
                 'six': "> 4",
                 'seven': "> 4",
                 'eight': "> 4",
+            },
+            'body_style': {
+                'sedan': 'sedan',
+                'hatchback': 'hatchback',
+                # other style will be 'other'
             }
         }
     }
@@ -63,7 +68,9 @@ def get_one_label_names(dataset_name, label_name):
     if dataset_name in custom_group_name:
         if label_name in custom_group_name[dataset_name]:
             custom_rule = custom_group_name[dataset_name][label_name]
-            label_names = np.array([custom_rule[s] for s in label_names])
+            print(custom_rule)
+            label_names = np.array([custom_rule.get(s, 'Other')
+                                    for s in label_names])
     return label_names
 
 
