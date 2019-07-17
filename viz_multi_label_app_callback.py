@@ -25,6 +25,23 @@ from MulticoreTSNE import MulticoreTSNE
 from common.dataset import dataset
 
 
+def get_custom_group_for_label():
+    return {
+        'Automobile_transformed': {
+            'num_of_cylinders': {
+                'one': "<= 4",
+                'two': "<= 4",
+                'three': "<= 4",
+                'four': "<= 4",
+                'five': "> 4",
+                'six': "> 4",
+                'seven': "> 4",
+                'eight': "> 4",
+            }
+        }
+    }
+
+
 @cache.memoize()
 def get_data_with_all_labels(dataset_name):
     dataset.set_data_home("./data")
@@ -37,10 +54,17 @@ def get_all_label_names(dataset_name):
     return multi_labels  # [{"target": [], "target_names": []}]
 
 
-@cache.memoize()
+# @cache.memoize()
 def get_one_label_names(dataset_name, label_name):
     multi_labels = get_all_label_names(dataset_name)
-    return multi_labels[label_name]["target_names"]
+    label_names = multi_labels[label_name]['target_names']
+    custom_group_name = get_custom_group_for_label()
+
+    if dataset_name in custom_group_name:
+        if label_name in custom_group_name[dataset_name]:
+            custom_rule = custom_group_name[dataset_name][label_name]
+            label_names = np.array([custom_rule[s] for s in label_names])
+    return label_names
 
 
 @cache.memoize()
@@ -61,8 +85,12 @@ def get_embedding(dataset_name, perplexity):
     [Input("select-dataset", "value")],
 )
 def load_multi_label_dataset_callback(dataset_name):
-    label_options = [{'label': lbl_name, 'value': lbl_name}
-                     for lbl_name in get_all_label_names(dataset_name)]
+    multi_labels = get_all_label_names(dataset_name)
+    label_options = []
+    for label_name, labels in multi_labels.items():
+        n_unique = len(np.unique(labels['target_names']))
+        label_options.append({'label': f"{label_name} ({n_unique})",
+                              'value': label_name})
     return (label_options, label_options)
 
 
@@ -81,7 +109,9 @@ def load_graph_callback(dataset_name, label_color, label_maker, perplexity):
     label_maker_names = get_one_label_names(dataset_name, label_maker)
     
     Z = get_embedding(dataset_name, float(perplexity))
-    list_color_codes = cycle(['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'])
+    list_color_codes = cycle(['#1f77b4', '#ff7f0e', '#2ca02c',
+                              '#d62728', '#9467bd', '#8c564b',
+                              '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'])
     
     traces = []
     for name_color, color_code in zip(np.unique(label_color_names), list_color_codes):        

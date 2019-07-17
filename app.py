@@ -52,7 +52,7 @@ select_perplexity = html.Div([
     dcc.Dropdown(
         id="select-perplexity",
         options=[{'label': p, 'value': p}
-                 for p in [5, 10, 20, 30, 50, 100]],
+                 for p in [5, 10, 20, 25, 30, 40, 50, 100]],
         value=30,
     )
 ])
